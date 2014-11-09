@@ -23,8 +23,8 @@ void PID::run(void)
 {
 	sigemptyset(&signal_set);
 	sigaddset(&signal_set,get_Signum());
-	//sigprocmask(SIG_SETMASK, &signal_set, NULL); 
-	//signal(get_Signum(),dummy);
+	sigprocmask(SIG_SETMASK, &signal_set, NULL); 
+	signal(get_Signum(),dummy);
 	
 	control_thread = thread(&PID::control, this);
 	
@@ -33,7 +33,7 @@ void PID::run(void)
 
 void PID::control(void)
 {
-	/*static float refx1, refx3, ref3=0, ref1=1.5708;
+	static float refx1, refx3, ref3=0, ref1=1.5708;
 	int Output;
 	//Soft_PWM pwm1("168",7650,30);
 	//pwm1.run();
@@ -48,7 +48,7 @@ void PID::control(void)
 		refx3=x3_rad*(pi/2000);
 		//Output=calc(ref1, ref3, refx1, refx3);
 		//pwm1.setAsync_OC(Output);
-	}*/
+	}
 }
 
 int PID::test_bra(string gpio)
