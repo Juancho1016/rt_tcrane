@@ -1,3 +1,4 @@
+/* Main file */
 #include <iostream>
 #include "main.h"
 
