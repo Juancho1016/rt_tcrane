@@ -6,8 +6,6 @@
  */
 #include "PID2.h"
 
-atomic<int> atom_move_crane;
-
 PID2::PID2
 				(string gpio_out, int ms_per, int ms_res) :
 														GPIO(gpio_out,"out"),
@@ -41,9 +39,12 @@ void PID2::run(void)
 void PID2::control(void)
 {
 	float ref1, ref3=0, refx1, refx3, Output;
+	Soft_PWM pwm1("168", 7650, 30);
 	cout << "Digite la ref en grados" << endl;
 	cin >> ref1;
 	ref1=(ref1*pi)/180;
+	pwm1.run();
+	//cout << pwm1.getTOP() << endl;
 	while(true)
 	{
 		//cout << ref1 << endl;
@@ -55,7 +56,7 @@ void PID2::control(void)
 		cout << ref1 << " " << ref3 << " " << refx1 << " " << refx3 << endl;
 		Output=law_control(ref1, ref3, refx1, refx3);
 		cout << Output << endl;
-		atom_move_crane.store(Output);
+		pwm1.setAsync_OC(Output);
 	}
 }
 

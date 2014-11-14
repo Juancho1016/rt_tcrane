@@ -5,7 +5,7 @@
 using namespace std;
 
 void test(void);
-//void test_PWM(void);
+void test_PWM(void);
 
 int main()
 {
@@ -21,7 +21,7 @@ void test(void)
 	my_pid.run();
 }
 
-/*void test_PWM(void)
+void test_PWM(void)
 {
 	Soft_PWM pwm0("168",7650,30);
 	//cout << out << endl;
@@ -39,4 +39,4 @@ void test(void)
 		//cin >> x;
 		//pwm1.setAsync_OC(x);
 	}
-}*/
+}

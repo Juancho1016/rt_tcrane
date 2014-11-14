@@ -17,12 +17,10 @@
 #include "cGPIO.h"
 #include "cPOLL_GPIO.h"
 #include "cSoft_PWM.h"
-#include "cTIMER.h" 	
+#include "cTIMER.h"
 #include "Gains_LQT_PID2.h"
 
 #define pi 3.14159265
-
-extern atomic<int> atom_move_crane;
 
 class PID2 :
 					public GPIO,
