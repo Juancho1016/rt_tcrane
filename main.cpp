@@ -4,14 +4,12 @@
 
 using namespace std;
 
-float r1_rad;
-
 void test(void);
 //void test_PWM(void);
 
 int main()
 {
-	cout << "Hola Chitan y Tamayo y Yopes" << endl;
+	cout << "Hola Chitan y Tamayo" << endl;
 	test();
 	//test_PWM();
 	return 0;	
@@ -19,7 +17,7 @@ int main()
 
 void test(void)
 {
-	PID my_pid(0,10);
+	PID2 my_pid("115", 0, 10);
 	my_pid.run();
 }
 
