@@ -31,7 +31,8 @@ void PID2::run(void)
 	signal(get_Signum(),dummy);
 
 	thread_control = thread(&PID2::control, this);
-	thread_control.join(); //Asi solucione el error
+	/* (jjescof) Cuidado que con join() bloquea el flujo del programa */
+	//thread_control.join(); //Asi solucione el error
 
 	setNewTime(0,ms_resolution*100000000);
 }
@@ -48,7 +49,7 @@ void PID2::control(void)
 	while(true)
 	{
 		//cout << ref1 << endl;
-		//sigwait(&signal_set2, &signal_emited2);
+		sigwait(&signal_set2, &signal_emited2);
 		test_bra("30");
 		refx1=(atom_x1.load())*(pi/144);
 		test_pen("60");
