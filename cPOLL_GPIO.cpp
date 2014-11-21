@@ -51,7 +51,7 @@ POLL_GPIO::~POLL_GPIO()
 /* Bloqueo del programa hasta que ocurra una interrupcion */
 int POLL_GPIO::wait_until_edge(void)
 {
-	fcn_return = poll(&GPIO_int,1,2); //Valor negativo significa que espera un tiempo infinito
+	fcn_return = poll(&GPIO_int,1,0.5); //Valor negativo significa que espera un tiempo infinito
 	//cout << fcn_return << endl;
 
 	if(fcn_return > 0)

@@ -12,19 +12,14 @@ int main()
 	cout << "Hola Chitan y Tamayo" << endl;
 	test();
 	//test_PWM();
-	while(true); /* (jjescof) Chitan usted crea todo y el programa inmediatamente
-														muere, matando todos los hilos y por eso lo
-														solucionaste con el join, pero es un error, 
-														puesto que va bloquear el flujo del
-														programa, el join deja la secuencia en espera hasta
-														que el hilo muere, y el hilo nunca muere */
-	return 0;	
+	return 0;
 }
 
 void test(void)
 {
 	PID2 my_pid("115", 0, 10);
 	my_pid.run();
+	while(true);
 }
 
 void test_PWM(void)

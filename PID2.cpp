@@ -39,8 +39,13 @@ void PID2::run(void)
 
 void PID2::control(void)
 {
-	float ref1, ref3=0, refx1, refx3, Output;
-	Soft_PWM pwm1("168", 7650, 30);
+	float ref1, ref3=0, refx1, refx3;
+	int Output
+
+	/* Entradas a la planta */
+	Soft_PWM pwm1("117", 7650, 30);
+	GPIO my_gpio2("113", "out");
+
 	cout << "Digite la ref en grados" << endl;
 	cin >> ref1;
 	ref1=(ref1*pi)/180;
@@ -48,16 +53,26 @@ void PID2::control(void)
 	//cout << pwm1.getTOP() << endl;
 	while(true)
 	{
-		//cout << ref1 << endl;
-		sigwait(&signal_set2, &signal_emited2);
-		test_bra("30");
-		refx1=(atom_x1.load())*(pi/144);
-		test_pen("60");
-		refx3=(atom_x3.load())*(pi/1000);
-		cout << ref1 << " " << ref3 << " " << refx1 << " " << refx3 << endl;
+		//sigwait(&signal_set2, &signal_emited2);
+
+		/* Salidas de la plata */
+		test_bra("110");
+		refx1=((atom_x1.load())*(pi/144))*(-1);
+		test_pen("7");
+		refx3=((atom_x3.load())*(pi/1000))*(-1);
+
 		Output=law_control(ref1, ref3, refx1, refx3);
 		cout << Output << endl;
-		pwm1.setAsync_OC(Output);
+		if(Output<1)
+		{
+			my_gpio2.setValue(1);
+			pwm1.setAsync_OC(Output*(-1));
+		}
+		else
+		{
+			my_gpio2.setValue(0);
+			pwm1.setAsync_OC(Output);
+		}
 	}
 }
 
@@ -73,7 +88,7 @@ int PID2::test_bra(string gpio)
 	static int count_bra = 0;
 	int d, infb;
 	float refx1=30;
-		POLL_GPIO my_int_gpio("20");
+		POLL_GPIO my_int_gpio("111");
 		GPIO my_gpio(gpio);
 		//cout << "Esperando interrupcion" << endl;
 		while (true)
@@ -107,7 +122,7 @@ int PID2::test_pen(string gpio)
 	static int count_pen = 0;
 	int f, infp;
 	float refx3=30;
-		POLL_GPIO my_int_gpio("30");
+		POLL_GPIO my_int_gpio("20");
 		GPIO my_gpio(gpio);
 		//cout << "Esperando interrupcion" << endl;
 		while (true)
@@ -129,7 +144,6 @@ int PID2::test_pen(string gpio)
 			else if((infp>0)&&(f==0))
 			{
 				count_pen--;
-				refx3=count_pen*(pi/2000);
 				atom_x3.store(count_pen);
 			}
 
@@ -142,20 +156,18 @@ int PID2::test_pen(string gpio)
 float PID2::law_control(float r1_rad, float r2_rad, float x1_rad, float x3_rad)
 {
 	static float u1k_1=0, u1k_2=0, e1k_1=0, e1k_2=0;
-	float e1k, e2k, u1k, u2k, uk;	
+	float e1k, e2k, u1k, u2k, uk;
 
 	///CALCULO DEL ERROR
-	e1k=r1_rad-x1_rad;
-	e2k=r2_rad-x3_rad;
-
-	//cout << r1_rad << " " << r2_rad << " " << x1_rad << " " << x3_rad << endl;
+	e1k=(r1_rad-x1_rad)*0.05;
+	e2k=(r2_rad-x3_rad)*0.05;
 
 	///COMPONENTES  DE LA LEY  DE CONTROL
-	u1k=(Ku1_4*u1k_1)+(Ku1_5*u1k_2)+(Ku1_1*e1k)+(Ku1_2*e1k_1)-(Ku1_3*e1k_2);
-	u2k=K*e2k;
+	u1k=((Ku1_4*u1k_1)+(Ku1_5*u1k_2)+(Ku1_1*e1k)+(Ku1_2*e1k_1)-(Ku1_3*e1k_2))*0.9;
+	u2k=(K*e2k)*1.5;
 
 	///CALCULO DE LA LEY  DE CONTROL
-	uk=u1k+u2k;
+	uk=(u1k+u2k)*(-1);
 
 	///ACTUALIZACION DE LOS ESTADOS ANTERIORES
 	e1k_2=e1k_1;
@@ -167,13 +179,13 @@ float PID2::law_control(float r1_rad, float r2_rad, float x1_rad, float x3_rad)
 
 	if(uk>5)
 	{
-		uk=-5;///SIGNO INVERTIDO POR LECTURA DE PLANTA
+		uk=5;///SIGNO INVERTIDO POR LECTURA DE PLANTA
 	}
 	else if(uk<(-5))
 	{
-		uk=5; ///SIGNO INVERTIDO POR LECTURA DE PLANTA
+		uk=-5; ///SIGNO INVERTIDO POR LECTURA DE PLANTA
 	}
-	return(float(uk*51));
+	return(uk*51);
 }
 
 /* Descripcion en el interior de la funcion */
