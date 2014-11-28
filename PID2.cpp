@@ -14,6 +14,7 @@ PID2::PID2
 	ms_resolution = ms_res;
 	ms_period = ms_per;
 
+	/* Cuidado que con el join() bloquea el flujo del programa */
 	atom_r1.store(0);
 	atom_r3.store(0);
 	atom_x1.store(0);
@@ -28,11 +29,10 @@ void PID2::run(void)
 	sigemptyset(&signal_set2);
 	sigaddset(&signal_set2,get_Signum());
 	sigprocmask(SIG_SETMASK, &signal_set2, NULL);
-	signal(get_Signum(),dummy);
-
+	signal(get_Signum(), pid);
 	thread_control = thread(&PID2::control, this);
-	/* (jjescof) Cuidado que con join() bloquea el flujo del programa */
-	//thread_control.join(); //Asi solucione el error
+	thread_inter_bra = thread(&PID2::test_bra, this, "110");
+	thread_inter_pen = thread(&PID2::test_pen, this, "7");
 
 	setNewTime(0,ms_resolution*100000000);
 }
@@ -40,39 +40,20 @@ void PID2::run(void)
 void PID2::control(void)
 {
 	float ref1, ref3=0, refx1, refx3;
-	int Output
+	int Output, ref_x1[73], i;
 
 	/* Entradas a la planta */
 	Soft_PWM pwm1("117", 7650, 30);
 	GPIO my_gpio2("113", "out");
-
+	
 	cout << "Digite la ref en grados" << endl;
 	cin >> ref1;
-	ref1=(ref1*pi)/180;
+	atom_r1.store(ref1);
 	pwm1.run();
-	//cout << pwm1.getTOP() << endl;
 	while(true)
 	{
-		//sigwait(&signal_set2, &signal_emited2);
-
-		/* Salidas de la plata */
-		test_bra("110");
-		refx1=((atom_x1.load())*(pi/144))*(-1);
-		test_pen("7");
-		refx3=((atom_x3.load())*(pi/1000))*(-1);
-
-		Output=law_control(ref1, ref3, refx1, refx3);
-		cout << Output << endl;
-		if(Output<1)
-		{
-			my_gpio2.setValue(1);
-			pwm1.setAsync_OC(Output*(-1));
-		}
-		else
-		{
-			my_gpio2.setValue(0);
-			pwm1.setAsync_OC(Output);
-		}
+		//thread_inter_bra;
+		sigwait(&signal_set2, &signal_emited2);
 	}
 }
 
@@ -81,13 +62,14 @@ void PID2::control(void)
 PID2::~PID2()
 {
 	thread_control.~thread();
+	thread_inter_bra.~thread();
 }
 
-int PID2::test_bra(string gpio)
+void PID2::test_bra(string gpio)
 {
 	static int count_bra = 0;
-	int d, infb;
-	float refx1=30;
+	int d, infb, i;
+	int refx1;
 		POLL_GPIO my_int_gpio("111");
 		GPIO my_gpio(gpio);
 		//cout << "Esperando interrupcion" << endl;
@@ -111,37 +93,37 @@ int PID2::test_bra(string gpio)
 				count_bra--;
 				atom_x1.store(count_bra);
 			}
-			//cout << "Wala!!!   " << "Contador: "<< ++count << endl<< endl<< endl;
-			//cout << count << endl;//Agregado octubre 23
-			return count_bra;
+			//cout << count << endl;
+			//return count_bra;
 		}
 }
 
-int PID2::test_pen(string gpio)
+void PID2::test_pen(string gpio2)
 {
 	static int count_pen = 0;
 	int f, infp;
-	float refx3=30;
-		POLL_GPIO my_int_gpio("20");
-		GPIO my_gpio(gpio);
+	float refx3;
+		POLL_GPIO my_int_gpio2("20");
+		GPIO my_gpio2(gpio2);
 		//cout << "Esperando interrupcion" << endl;
 		while (true)
 		{
-			infp=my_int_gpio.wait_until_edge();
-			f=my_gpio.getValue();
+			infp=my_int_gpio2.wait_until_edge();
+			f=my_gpio2.getValue();
+			//refx3=atom_r1.load();
+			//cout << refx3 << endl;
 
 			if(infp==0)
 			{
 				count_pen=0;
 				atom_x3.store(count_pen);
 			}
-			if((infp>0)&&(f==1))
+			if((infp>0)&&(f==0))
 			{
 				count_pen++;
-				refx3=count_pen*(pi/2000);
 				atom_x3.store(count_pen);
 			}
-			else if((infp>0)&&(f==0))
+			else if((infp>0)&&(f==1))
 			{
 				count_pen--;
 				atom_x3.store(count_pen);
@@ -149,18 +131,28 @@ int PID2::test_pen(string gpio)
 
 			//cout << "Wala!!!   " << "Contador: "<< ++count << endl<< endl<< endl;
 			//cout << count << endl;//Agregado octubre 23
-			return count_pen;
+			//return count_pen;
 		}
 }
 
-float PID2::law_control(float r1_rad, float r2_rad, float x1_rad, float x3_rad)
+/* Descripcion en el interior de la funcion */
+void PID2::pid(int sig)
 {
 	static float u1k_1=0, u1k_2=0, e1k_1=0, e1k_2=0;
+	float r1_rad, r2_rad, x1_rad, x3_rad;
 	float e1k, e2k, u1k, u2k, uk;
+
+	//r1_rad=(atom_r1.load())*(pi/180);
+	//r2_rad=0;
+	//x1_rad=(atom_x1.load())*(pi/144);
+	//x3_rad=(atom_x3.load())*(pi/1000);	
 
 	///CALCULO DEL ERROR
 	e1k=(r1_rad-x1_rad)*0.05;
 	e2k=(r2_rad-x3_rad)*0.05;
+
+	cout << r1_rad << " " << r2_rad << " " << x1_rad << " " << x3_rad << endl;
+	cout << e1k << " " << e2k << endl;
 
 	///COMPONENTES  DE LA LEY  DE CONTROL
 	u1k=((Ku1_4*u1k_1)+(Ku1_5*u1k_2)+(Ku1_1*e1k)+(Ku1_2*e1k_1)-(Ku1_3*e1k_2))*0.9;
@@ -177,6 +169,8 @@ float PID2::law_control(float r1_rad, float r2_rad, float x1_rad, float x3_rad)
 
 	//uk=uk/Fac_PID;
 
+	cout << uk << endl;
+
 	if(uk>5)
 	{
 		uk=5;///SIGNO INVERTIDO POR LECTURA DE PLANTA
@@ -185,15 +179,4 @@ float PID2::law_control(float r1_rad, float r2_rad, float x1_rad, float x3_rad)
 	{
 		uk=-5; ///SIGNO INVERTIDO POR LECTURA DE PLANTA
 	}
-	return(uk*51);
-}
-
-/* Descripcion en el interior de la funcion */
-void PID2::dummy(int sig)
-{
-	/* Esta funcion es un dummy al cual se conectan todas las señales,
-	 * ya que cuando se declara mas de un objeto de tipo PID
-	 * las señales emitidas por cada uno causan interferencia entre si, puesto que
-	 * un hilo determina que una señal emita no fue tenida en cuenta y aborta el programa
-	 */
 }

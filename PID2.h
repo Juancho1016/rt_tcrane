@@ -32,10 +32,10 @@ class PID2 :
 		void run(void);
 
 		void control(void);
-		static void dummy(int sig);
-		int test_bra(string gpio);
-		int test_pen(string gpio2);
-		float law_control(float r1_rad, float r2_rad, float x1_rad, float x3_rad);
+		static void pid(int sig);
+		void test_bra(string gpio);
+		void test_pen(string gpio2);
+		int law_control(float r1_rad, float r2_rad, float x1_rad, float x3_rad);
 
 		int ms_resolution;
 		int ms_period;
@@ -44,6 +44,8 @@ class PID2 :
 		sigset_t signal_set2;
 
 		thread thread_control;
+		thread thread_inter_bra;
+		thread thread_inter_pen;
 		atomic<int> atom_r1;
 		atomic<int> atom_r3;
 		atomic<int> atom_x1;
