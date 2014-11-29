@@ -32,10 +32,10 @@ class PID2 :
 		void run(void);
 
 		void control(void);
-		static void pid(int sig);
+		static void dummy(int sig);
 		void test_bra(string gpio);
 		void test_pen(string gpio2);
-		int law_control(float r1_rad, float r2_rad, float x1_rad, float x3_rad);
+		int law_control(void);
 
 		int ms_resolution;
 		int ms_period;

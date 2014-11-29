@@ -29,7 +29,7 @@ void PID2::run(void)
 	sigemptyset(&signal_set2);
 	sigaddset(&signal_set2,get_Signum());
 	sigprocmask(SIG_SETMASK, &signal_set2, NULL);
-	signal(get_Signum(), pid);
+	signal(get_Signum(), dummy);
 	thread_control = thread(&PID2::control, this);
 	thread_inter_bra = thread(&PID2::test_bra, this, "110");
 	thread_inter_pen = thread(&PID2::test_pen, this, "7");
@@ -52,8 +52,9 @@ void PID2::control(void)
 	pwm1.run();
 	while(true)
 	{
-		//thread_inter_bra;
-		sigwait(&signal_set2, &signal_emited2);
+		law_control();
+		sleep(1);
+		//sigwait(&signal_set2, &signal_emited2);
 	}
 }
 
@@ -63,6 +64,7 @@ PID2::~PID2()
 {
 	thread_control.~thread();
 	thread_inter_bra.~thread();
+	thread_inter_pen.~thread();
 }
 
 void PID2::test_bra(string gpio)
@@ -77,6 +79,7 @@ void PID2::test_bra(string gpio)
 		{
 			infb=my_int_gpio.wait_until_edge();
 			d=my_gpio.getValue();
+			cout << "Hola contador brazo" << endl;
 
 			if(infb==0)
 			{
@@ -110,8 +113,7 @@ void PID2::test_pen(string gpio2)
 		{
 			infp=my_int_gpio2.wait_until_edge();
 			f=my_gpio2.getValue();
-			//refx3=atom_r1.load();
-			//cout << refx3 << endl;
+			cout << "Hola contador pendulo" << endl;
 
 			if(infp==0)
 			{
@@ -135,24 +137,26 @@ void PID2::test_pen(string gpio2)
 		}
 }
 
-/* Descripcion en el interior de la funcion */
-void PID2::pid(int sig)
+int PID2::law_control(void)
 {
 	static float u1k_1=0, u1k_2=0, e1k_1=0, e1k_2=0;
-	float r1_rad, r2_rad, x1_rad, x3_rad;
 	float e1k, e2k, u1k, u2k, uk;
+	float r1_rad, r2_rad, x1_rad, x3_rad;	
 
-	//r1_rad=(atom_r1.load())*(pi/180);
-	//r2_rad=0;
-	//x1_rad=(atom_x1.load())*(pi/144);
-	//x3_rad=(atom_x3.load())*(pi/1000);	
+	//VARIABLES ATOMICAS
+	r1_rad=(atom_r1.load())*(pi/180);
+	r2_rad=0;
+	x1_rad=(atom_x1.load())*(pi/144);
+	x3_rad=(atom_x3.load())*(pi/1000);
 
 	///CALCULO DEL ERROR
 	e1k=(r1_rad-x1_rad)*0.05;
 	e2k=(r2_rad-x3_rad)*0.05;
 
-	cout << r1_rad << " " << r2_rad << " " << x1_rad << " " << x3_rad << endl;
-	cout << e1k << " " << e2k << endl;
+	cout << "Hola ley de control" << endl;
+
+	//cout << r1_rad << " " << r2_rad << " " << x1_rad << " " << x3_rad << endl;
+	//cout << e1k << " " << e2k << endl;
 
 	///COMPONENTES  DE LA LEY  DE CONTROL
 	u1k=((Ku1_4*u1k_1)+(Ku1_5*u1k_2)+(Ku1_1*e1k)+(Ku1_2*e1k_1)-(Ku1_3*e1k_2))*0.9;
@@ -169,7 +173,7 @@ void PID2::pid(int sig)
 
 	//uk=uk/Fac_PID;
 
-	cout << uk << endl;
+	//cout << uk << endl;
 
 	if(uk>5)
 	{
@@ -179,4 +183,15 @@ void PID2::pid(int sig)
 	{
 		uk=-5; ///SIGNO INVERTIDO POR LECTURA DE PLANTA
 	}
+	return(uk*51);
+}
+
+/* Descripcion en el interior de la funcion */
+void PID2::dummy(int sig)
+{
+	/* Esta funcion es un dummy al cual se conectan todas las señales,
+	 * ya que cuando se declara mas de un objeto de tipo PID
+	 * las señales emitidas por cada uno causan interferencia entre si, puesto que
+	 * un hilo determina que una señal emita no fue tenida en cuenta y aborta el programa
+	 */
 }
