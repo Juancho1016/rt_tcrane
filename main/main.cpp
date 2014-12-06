@@ -1,5 +1,11 @@
 /* Main file */
-#include <iostream>
+#include <pthread.h>
+#include "cTIMER.h"
+#include "cSoft_PWM.h"
+#include "cPOLL_GPIO.h"
+#include "cGPIO.h"
+#include "Gains_LQT_PID2.h"
+#include "PID2.h"
 #include "main.h"
 
 using namespace std;
@@ -7,37 +13,50 @@ using namespace std;
 void test(void);
 void test_PWM(void);
 
+sem_t sinc;
+atomic<int> atom_uk;
+
 int main()
 {
 	cout << "Hola Chitan y Tamayo" << endl;
-	test();
-	//test_PWM();
-	return 0;
+	thread hilo1;
+	thread hilo2;
+	sem_init(&sinc,0,1);
+	hilo1=thread(&test);
+	hilo2=thread(&test_PWM);
+	while(true); 	
 }
 
 void test(void)
 {
 	PID2 my_pid("115", 0, 10);
 	my_pid.run();
+	sem_wait(&sinc);
 	while(true);
 }
 
 void test_PWM(void)
 {
-	Soft_PWM pwm0("168",7650,30);
-	//cout << out << endl;
-	//Soft_PWM pwm1("20",40);
+	int OC;
+	Soft_PWM pwm0("117", 7650, 30);
+	GPIO my_direction("113", "out");
 	pwm0.run();
-	//pwm1.run();
-	int x;
-	cout << pwm0.getTOP() << endl;
+	sem_post(&sinc);
 	while(1)
 	{
-		cout << "Valor PWM 0" << endl;
-		cin >> x;
-		pwm0.setAsync_OC(x);
-		//cout << "Valor PWM 1" << endl;
+		OC=atom_uk.load();
+		//cout << OC << endl;
+		if(OC<0)
+		{
+			pwm0.setAsync_OC(OC*(-1));
+			my_direction.setValue(1);
+		}
+		else
+		{
+			pwm0.setAsync_OC(OC);
+			my_direction.setValue(0);
+		}
+		//cout << "Valor PWM 0" << endl;
 		//cin >> x;
-		//pwm1.setAsync_OC(x);
 	}
 }

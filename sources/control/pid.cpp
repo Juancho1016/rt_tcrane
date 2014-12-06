@@ -5,20 +5,18 @@
  *      Author: andres
  */
 #include "PID2.h"
+#include "main.h"
 
-PID2::PID2
-				(string gpio_out, int ms_per, int ms_res) :
-														GPIO(gpio_out,"out"),
-														TIMER(0,0)
+PID2::PID2(string gpio_out, int ms_per, int ms_res) : GPIO(gpio_out,"out"), TIMER(0,0)
 {
 	ms_resolution = ms_res;
 	ms_period = ms_per;
 
 	/* Cuidado que con el join() bloquea el flujo del programa */
 	atom_r1.store(0);
-	atom_r3.store(0);
 	atom_x1.store(0);
 	atom_x3.store(0);
+	atom_uk.store(0);
 
 	signal_emited2 = 0;
 }
@@ -26,15 +24,19 @@ PID2::PID2
 void PID2::run(void)
 {
 	cout << "run" << endl;
+
 	sigemptyset(&signal_set2);
 	sigaddset(&signal_set2,get_Signum());
 	sigprocmask(SIG_SETMASK, &signal_set2, NULL);
 	signal(get_Signum(), dummy);
+	
 	thread_control = thread(&PID2::control, this);
 	thread_inter_bra = thread(&PID2::test_bra, this, "110");
 	thread_inter_pen = thread(&PID2::test_pen, this, "7");
+	//thread_pwm = thread(&PID2::pwm, this);
+	//pwm();
 
-	setNewTime(0,ms_resolution*100000000);
+	setNewTime(0,ms_resolution*1000000);
 }
 
 void PID2::control(void)
@@ -43,18 +45,15 @@ void PID2::control(void)
 	int Output, ref_x1[73], i;
 
 	/* Entradas a la planta */
-	Soft_PWM pwm1("117", 7650, 30);
-	GPIO my_gpio2("113", "out");
 	
 	cout << "Digite la ref en grados" << endl;
 	cin >> ref1;
 	atom_r1.store(ref1);
-	pwm1.run();
 	while(true)
 	{
+		sigwait(&signal_set2, &signal_emited2);
 		law_control();
-		sleep(1);
-		//sigwait(&signal_set2, &signal_emited2);
+		//pwm();
 	}
 }
 
@@ -65,6 +64,7 @@ PID2::~PID2()
 	thread_control.~thread();
 	thread_inter_bra.~thread();
 	thread_inter_pen.~thread();
+	thread_pwm.~thread();
 }
 
 void PID2::test_bra(string gpio)
@@ -74,12 +74,12 @@ void PID2::test_bra(string gpio)
 	int refx1;
 		POLL_GPIO my_int_gpio("111");
 		GPIO my_gpio(gpio);
-		//cout << "Esperando interrupcion" << endl;
+
 		while (true)
 		{
 			infb=my_int_gpio.wait_until_edge();
 			d=my_gpio.getValue();
-			cout << "Hola contador brazo" << endl;
+			//cout << "Hola contador brazo" << endl;
 
 			if(infb==0)
 			{
@@ -96,8 +96,6 @@ void PID2::test_bra(string gpio)
 				count_bra--;
 				atom_x1.store(count_bra);
 			}
-			//cout << count << endl;
-			//return count_bra;
 		}
 }
 
@@ -108,12 +106,12 @@ void PID2::test_pen(string gpio2)
 	float refx3;
 		POLL_GPIO my_int_gpio2("20");
 		GPIO my_gpio2(gpio2);
-		//cout << "Esperando interrupcion" << endl;
+		
 		while (true)
 		{
 			infp=my_int_gpio2.wait_until_edge();
 			f=my_gpio2.getValue();
-			cout << "Hola contador pendulo" << endl;
+			//cout << "Hola contador pendulo" << endl;
 
 			if(infp==0)
 			{
@@ -130,14 +128,10 @@ void PID2::test_pen(string gpio2)
 				count_pen--;
 				atom_x3.store(count_pen);
 			}
-
-			//cout << "Wala!!!   " << "Contador: "<< ++count << endl<< endl<< endl;
-			//cout << count << endl;//Agregado octubre 23
-			//return count_pen;
 		}
 }
 
-int PID2::law_control(void)
+void PID2::law_control(void)
 {
 	static float u1k_1=0, u1k_2=0, e1k_1=0, e1k_2=0;
 	float e1k, e2k, u1k, u2k, uk;
@@ -153,9 +147,9 @@ int PID2::law_control(void)
 	e1k=(r1_rad-x1_rad)*0.05;
 	e2k=(r2_rad-x3_rad)*0.05;
 
-	cout << "Hola ley de control" << endl;
+	//cout << "Hola ley de control" << endl;
 
-	//cout << r1_rad << " " << r2_rad << " " << x1_rad << " " << x3_rad << endl;
+	cout << r1_rad << " " << r2_rad << " " << x1_rad << " " << x3_rad << endl;
 	//cout << e1k << " " << e2k << endl;
 
 	///COMPONENTES  DE LA LEY  DE CONTROL
@@ -173,7 +167,7 @@ int PID2::law_control(void)
 
 	//uk=uk/Fac_PID;
 
-	//cout << uk << endl;
+	cout << uk << endl;
 
 	if(uk>5)
 	{
@@ -183,8 +177,9 @@ int PID2::law_control(void)
 	{
 		uk=-5; ///SIGNO INVERTIDO POR LECTURA DE PLANTA
 	}
-	return(uk*51);
+	atom_uk.store(uk*51);
 }
+
 
 /* Descripcion en el interior de la funcion */
 void PID2::dummy(int sig)
