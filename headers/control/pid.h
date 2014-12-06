@@ -35,7 +35,8 @@ class PID2 :
 		static void dummy(int sig);
 		void test_bra(string gpio);
 		void test_pen(string gpio2);
-		int law_control(void);
+		void pwm(void);
+		void law_control(void);
 
 		int ms_resolution;
 		int ms_period;
@@ -46,8 +47,9 @@ class PID2 :
 		thread thread_control;
 		thread thread_inter_bra;
 		thread thread_inter_pen;
+		thread thread_pwm;
 		atomic<int> atom_r1;
-		atomic<int> atom_r3;
+		atomic<int> atom_uk;
 		atomic<int> atom_x1;
 		atomic<int> atom_x3;
 };

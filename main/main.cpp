@@ -14,17 +14,13 @@ void test(void);
 void test_PWM(void);
 
 sem_t sinc;
-atomic<int> atom_uk;
 
 int main()
 {
 	cout << "Hola Chitan y Tamayo" << endl;
-	thread hilo1;
-	thread hilo2;
-	sem_init(&sinc,0,1);
-	hilo1=thread(&test);
-	hilo2=thread(&test_PWM);
-	while(true); 	
+	test();
+	//hilo2=thread(&test_PWM);
+	//while(true); 	
 }
 
 void test(void)

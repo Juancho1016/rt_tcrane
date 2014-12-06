@@ -11,7 +11,7 @@ PID2::PID2(string gpio_out, int ms_per, int ms_res) : GPIO(gpio_out,"out"), TIME
 {
 	ms_resolution = ms_res;
 	ms_period = ms_per;
-
+	
 	/* Cuidado que con el join() bloquea el flujo del programa */
 	atom_r1.store(0);
 	atom_x1.store(0);
@@ -33,7 +33,7 @@ void PID2::run(void)
 	thread_control = thread(&PID2::control, this);
 	thread_inter_bra = thread(&PID2::test_bra, this, "110");
 	thread_inter_pen = thread(&PID2::test_pen, this, "7");
-	//thread_pwm = thread(&PID2::pwm, this);
+	thread_pwm = thread(&PID2::pwm, this);
 	//pwm();
 
 	setNewTime(0,ms_resolution*1000000);
@@ -53,7 +53,6 @@ void PID2::control(void)
 	{
 		sigwait(&signal_set2, &signal_emited2);
 		law_control();
-		//pwm();
 	}
 }
 
@@ -178,6 +177,29 @@ void PID2::law_control(void)
 		uk=-5; ///SIGNO INVERTIDO POR LECTURA DE PLANTA
 	}
 	atom_uk.store(uk*51);
+}
+
+void PID2::pwm(void)
+{
+	int OC;
+	Soft_PWM pwm0("117", 7650, 30);
+	GPIO my_direction("113", "out");
+	pwm0.run();
+	while(1)
+	{
+		OC=atom_uk.load();
+		//cout << OC << endl;
+		if(OC<0)
+		{
+			pwm0.setAsync_OC(OC*(-1));
+			my_direction.setValue(1);
+		}
+		else
+		{
+			pwm0.setAsync_OC(OC);
+			my_direction.setValue(0);
+		}
+	}
 }
 
 
