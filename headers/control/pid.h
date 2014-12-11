@@ -31,8 +31,8 @@ class PID2 : public GPIO, public TIMER{
 		void run(void);
 
 		// Atributos(las constantes estan en un .h)
-		static float e1k_1, e1k_2, u1k_1, u1k_2;
-		static int count_bra, count_pen;
+		float e1k_1, e1k_2, u1k_1, u1k_2;
+		int count_bra, count_pen;
 		float r1_rad, r2_rad;
 		float e1k, e2k, u1k, u2k, uk;
 		float x1_rad, x3_rad;

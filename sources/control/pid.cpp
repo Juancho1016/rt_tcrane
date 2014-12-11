@@ -7,13 +7,6 @@
 #include "PID2.h"
 #include "main.h"
 
-float PID2::e1k_1=0;
-float PID2::e1k_2=0;
-float PID2::u1k_1=0;
-float PID2::u1k_2=0;
-int PID2::count_bra=0;
-int PID2::count_pen=0;
-
 PID2::PID2(string gpio_out, int ms_per, int ms_res) : GPIO(gpio_out,"out"), TIMER(0,0)
 {
 	ms_resolution = ms_res;
