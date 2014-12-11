@@ -7,6 +7,13 @@
 #include "PID2.h"
 #include "main.h"
 
+float PID2::e1k_1=0;
+float PID2::e1k_2=0;
+float PID2::u1k_1=0;
+float PID2::u1k_2=0;
+int PID2::count_bra=0;
+int PID2::count_pen=0;
+
 PID2::PID2(string gpio_out, int ms_per, int ms_res) : GPIO(gpio_out,"out"), TIMER(0,0)
 {
 	ms_resolution = ms_res;
@@ -29,6 +36,9 @@ PID2::PID2(string gpio_out, int ms_per, int ms_res) : GPIO(gpio_out,"out"), TIME
 
 	thread_bra = thread(&PID2::test_bra, this);
 	thread_pen = thread(&PID2::test_pen, this);
+	
+	pwm1 -> run();
+	pwm1 -> setAsync_OC(0);
 }
 
 void PID2::run(void)
@@ -41,8 +51,6 @@ void PID2::run(void)
 	signal(get_Signum(), dummy);
 	
 	thread_control = thread(&PID2::control, this);
-	//thread_pwm = thread(&PID2::pwm, this);
-	//pwm();
 
 	setNewTime(0,ms_resolution*1000000);
 }
@@ -55,8 +63,7 @@ void PID2::control(void)
 	while(true)
 	{
 		sigwait(&signal_set2, &signal_emited2);
-		//law_control();
-		//pwm();
+		law_control();
 	}
 }
 
@@ -125,6 +132,59 @@ void PID2::test_pen(void)
 			count_pen--;
 			atom_x3.store(count_pen);
 		}
+	}
+}
+
+void PID2::law_control(void)
+{	
+	//VARIABLES ATOMICAS
+	r1_rad=(atom_r1.load())*(pi/180);
+	r2_rad=0;
+	x1_rad=(atom_x1.load())*(pi/144);
+	x3_rad=(atom_x3.load())*(pi/1000);
+
+	///CALCULO DEL ERROR
+	e1k=(r1_rad-x1_rad)*0.05;
+	e2k=(r2_rad-x3_rad)*0.05;
+
+	cout << "Hola ley de control" << endl;
+
+	//cout << r1_rad << " " << r2_rad << " " << x1_rad << " " << x3_rad << endl;
+	//cout << e1k << " " << e2k << endl;
+
+	///COMPONENTES  DE LA LEY  DE CONTROL
+	u1k=((Ku1_4*u1k_1)+(Ku1_5*u1k_2)+(Ku1_1*e1k)+(Ku1_2*e1k_1)-(Ku1_3*e1k_2))*0.9;
+	u2k=(K*e2k)*1.5;
+
+	///CALCULO DE LA LEY  DE CONTROL
+	uk=(u1k+u2k)*(-1);
+
+	///ACTUALIZACION DE LOS ESTADOS ANTERIORES
+	e1k_2=e1k_1;
+	e1k_1=e1k;
+	u1k_2=u1k_1;
+	u1k_1=u1k;
+
+	//uk=uk/Fac_PID;
+
+	//cout << uk << endl;
+
+	if(uk>5)
+	{
+		uk=5;///SIGNO INVERTIDO POR LECTURA DE PLANTA
+	}
+	else if(uk<(-5))
+	{
+		uk=-5; ///SIGNO INVERTIDO POR LECTURA DE PLANTA
+	}
+	uk=uk*51;
+	if(uk<0)
+	{
+		pwm1 -> setAsync_OC(uk*(-1));
+	}
+	else
+	{
+		pwm1 -> setAsync_OC(uk);
 	}
 }
 

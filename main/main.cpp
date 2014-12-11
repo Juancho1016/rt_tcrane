@@ -18,8 +18,8 @@ sem_t sinc;
 int main()
 {
 	cout << "Hola Chitan y Tamayo" << endl;
-	//test();
-	test_PWM(); 	
+	test();
+	//test_PWM(); 	
 }
 
 void test(void)
