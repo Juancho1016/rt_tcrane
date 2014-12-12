@@ -16,7 +16,7 @@ PID2::PID2(string gpio_out, int ms_per, int ms_res) : GPIO(gpio_out,"out"), TIME
 	atom_r1.store(90);
 	atom_x1.store(0);
 	atom_x3.store(0);
-	atom_uk.store(0);
+	atom_uk.store(50);
 
 	signal_emited2 = 0;
 
@@ -31,7 +31,7 @@ PID2::PID2(string gpio_out, int ms_per, int ms_res) : GPIO(gpio_out,"out"), TIME
 	thread_pen = thread(&PID2::test_pen, this);
 	
 	pwm1 -> run();
-	pwm1 -> setAsync_OC(0);
+	pwm1 -> setAsync_OC(atom_uk.load());
 }
 
 void PID2::run(void)
