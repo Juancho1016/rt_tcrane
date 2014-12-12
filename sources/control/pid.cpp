@@ -13,7 +13,7 @@ PID2::PID2(string gpio_out, int ms_per, int ms_res) : GPIO(gpio_out,"out"), TIME
 	ms_period = ms_per;
 
 	/* Cuidado que con el join() bloquea el flujo del programa */
-	atom_r1.store(0);
+	atom_r1.store(90);
 	atom_x1.store(0);
 	atom_x3.store(0);
 	atom_uk.store(0);
@@ -50,13 +50,13 @@ void PID2::run(void)
 
 void PID2::control(void)
 {
-	cout << "Digite la ref en grados" << endl;
-	cin >> ref1;
-	atom_r1.store(ref1);
+	//cout << "Digite la ref en grados" << endl;
+	//cin >> ref1;
+	//atom_r1.store(ref1);
 	while(true)
 	{
 		sigwait(&signal_set2, &signal_emited2);
-		law_control();
+		//law_control();
 	}
 }
 
@@ -73,7 +73,6 @@ PID2::~PID2()
 	thread_control.~thread();
 	thread_bra.~thread();
 	thread_pen.~thread();
-	//thread_pwm.~thread();
 }
 
 void PID2::test_bra(void)
@@ -140,7 +139,7 @@ void PID2::law_control(void)
 	e1k=(r1_rad-x1_rad)*0.05;
 	e2k=(r2_rad-x3_rad)*0.05;
 
-	cout << "Hola ley de control" << endl;
+	//cout << "Hola ley de control" << endl;
 
 	//cout << r1_rad << " " << r2_rad << " " << x1_rad << " " << x3_rad << endl;
 	//cout << e1k << " " << e2k << endl;
@@ -171,14 +170,14 @@ void PID2::law_control(void)
 		uk=-5; ///SIGNO INVERTIDO POR LECTURA DE PLANTA
 	}
 	uk=uk*51;
-	if(uk<0)
+	/*if(uk<0)
 	{
 		pwm1 -> setAsync_OC(uk*(-1));
 	}
 	else
 	{
 		pwm1 -> setAsync_OC(uk);
-	}
+	}*/
 }
 
 void PID2::dummy(int sig)
